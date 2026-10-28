@@ -221,4 +221,45 @@ describe('mobile history keyboard access', () => {
     await screen.findByRole('link', { name: /Wynik testowy/ });
     expect(document.activeElement).toBe(screen.getByLabelText('Czego szukasz?'));
   });
+
+  it('opens the detailed search panel and sends structured filters', async () => {
+    render(<App />); const user = userEvent.setup();
+    expect(document.querySelector('.details-panel')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Szukanie szczegółowe' }));
+    expect(screen.getByLabelText('Wyklucz słowa')).toBeTruthy();
+    await user.type(screen.getByLabelText('Czego szukasz?'), 'switch');
+    await user.type(screen.getByLabelText('Wyklucz słowa'), 'używany, promocja');
+    await user.type(screen.getByLabelText('Muszą wystąpić'), 'recenzja');
+    await user.selectOptions(screen.getByLabelText('Zakres czasu'), 'week');
+    await user.selectOptions(screen.getByLabelText('Kategoria'), 'news');
+    await user.click(screen.getByRole('button', { name: 'Szukaj', exact: true }));
+    await screen.findByRole('link', { name: /Wynik testowy/ });
+    expect(fetch).toHaveBeenCalledWith('/api/search', expect.objectContaining({ body: JSON.stringify({
+      query: 'switch', max_results: 10,
+      advanced: { exclude: ['używany', 'promocja'], include: ['recenzja'], phrase: '', site: [], not_site: [],
+                 language: '', time_range: 'week', categories: ['news'] },
+    }) }));
+  });
+
+  it('shows active filters as removable chips', async () => {
+    render(<App />); const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Szukanie szczegółowe' }));
+    await user.type(screen.getByLabelText('Wyklucz słowa'), 'używany');
+    await user.type(screen.getByLabelText('Dokładna fraza'), 'napęd paskowy');
+    const chip = await screen.findByText('−używany');
+    expect(screen.getByText('„napęd paskowy”')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Usuń filtr: −używany' }));
+    expect(chip).toBeTruthy();
+    expect(screen.queryByText('−używany')).toBeNull();
+    expect(screen.getByText('„napęd paskowy”')).toBeTruthy();
+  });
+
+  it('clears all filters from the panel action', async () => {
+    render(<App />); const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Szukanie szczegółowe' }));
+    await user.type(screen.getByLabelText('W witrynie'), 'wikipedia.org');
+    expect(screen.getByText('site: wikipedia.org')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /Wyczyść filtry/ }));
+    expect(screen.queryByText('site: wikipedia.org')).toBeNull();
+  });
 });

@@ -38,6 +38,20 @@ Nazwa serwera: `search`. Nazwa narzędzia: `web_search`.
 |---|---|---|---|
 | `query` | string | tak | Niepuste po trim, maksymalnie 1000 znaków Unicode |
 | `max_results` | integer | nie | Domyślnie 5; kod ogranicza wartość do 1–10 |
+| `time_range` | string | nie | `day`, `week`, `month` lub `year` (SearXNG) |
+| `language` | string | nie | Np. `pl`, `en-US`, `auto`, `all` (SearXNG) |
+| `categories` | [string] | nie | Np. `["general","news"]`; dozwolone: general, images, videos, news, it, music, files, science, social media |
+| `exclude` | [string] | nie | Słowa wykluczone — trafiają do zapytania jako `-"słowo"` |
+| `include` | [string] | nie | Słowa wymagane — trafiają do zapytania jako `+"słowo"` |
+| `phrase` | string | nie | Dokładna fraza — trafia do zapytania w cudzysłowie |
+| `site` | [string] | nie | Domeny ograniczające (`site:domena`) |
+| `not_site` | [string] | nie | Domeny wykluczające (`-site:domena`) |
+
+Opcjonalne argumenty szczegółowe (wszystkie poza `query`/`max_results`) są
+niezgodne z poprzednią wersją kontraktu wstecznie — klienci, które ich nie
+przekazują, działają bez zmian. Operatory `-/+/"..."/site:` są przekazywane
+zewnętrznym silnikom; SearXNG sam parsuje wyłącznie `!bang`, `:język`, `!!`
+oraz `<limit_czasu`.
 
 Przykładowe argumenty:
 
