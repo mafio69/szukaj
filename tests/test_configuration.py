@@ -32,6 +32,12 @@ class ConfigurationTests(unittest.TestCase):
         self.assertNotIn(':latest', compose)
         self.assertRegex(compose, r'image: searxng/searxng@sha256:[a-f0-9]{64}')
 
+    def test_dockerfile_copies_every_runtime_module(self):
+        dockerfile = (ROOT / 'mcp/Dockerfile').read_text()
+        copied = set(re.search(r'^COPY (mcp/[\w.]+(?: mcp/[\w.]+)*) \./', dockerfile, re.M).group(1).split())
+        runtime = {f'mcp/{path.name}' for path in (ROOT / 'mcp').glob('*.py')}
+        self.assertEqual(runtime - copied, set())
+
     def test_public_settings_never_contain_a_secret_value(self):
         settings = (ROOT / 'searxng-settings.example.yml').read_text()
         key_lines = [line.strip() for line in settings.splitlines() if line.strip().startswith('secret_key:')]
