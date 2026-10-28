@@ -5,7 +5,6 @@ import html
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlsplit
 
 import uvicorn
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -16,6 +15,8 @@ from starlette.staticfiles import StaticFiles
 
 from access import McpAccessMiddleware
 from app_logging import configure_logging, get_logger, is_dev_env
+from auth_routes import Auth, auth_disabled, is_auth_enabled
+from request_guard import RejectedRequest, read_json_object
 from server import CATEGORIES, HOST_PATTERN, TIME_RANGES, HOST, PORT, close_http_client, mcp, web_search
 
 FRIENDLY_INTERNAL_ERROR = "Błąd. Przepraszamy, wystąpił problem techniczny. Spróbuj ponownie za moment."
@@ -117,7 +118,9 @@ def _render_unhandled_error(request: Request, exc: Exception, dev_mode: bool):
     return JSONResponse(payload, status_code=500)
 
 
-def create_app(search_service=web_search, static_dir=None, allowed_hosts=None, mcp_auth=None, app_env=None):
+def create_app(search_service=web_search, static_dir=None, allowed_hosts=None, mcp_auth=None, app_env=None,
+               auth=None):
+    """`auth`: None reads AUTH_ENABLED from the environment, False disables accounts."""
     assets = Path(static_dir) if static_dir else Path(__file__).resolve().parent / "static"
     dev_mode = is_dev_env(app_env)
     logger = get_logger()
@@ -125,33 +128,19 @@ def create_app(search_service=web_search, static_dir=None, allowed_hosts=None, m
         host.strip() for host in (os.getenv("SEARCH_ALLOWED_HOSTS")
                                   or "127.0.0.1,localhost,mcp-search").split(",") if host.strip()
     ]
+    if auth is None:
+        auth = Auth.from_env(trusted_hosts) if is_auth_enabled() else False
+    auth = auth or None
+    auth_routes = auth.routes() if auth else [Route("/api/auth/me", auth_disabled, methods=["GET"])]
 
     async def search_endpoint(request: Request):
-        # Do not accept cross-origin form submissions or send provider errors to browsers.
-        if request.headers.get("content-type", "").split(";")[0].strip() != "application/json":
-            return _reject_search(logger, "JSON required", 415)
-        origin = request.headers.get("origin")
-        if origin:
-            origin_host = urlsplit(origin).hostname
-            is_same_origin = origin == f"{request.url.scheme}://{request.url.netloc}"
-            is_trusted = origin_host in trusted_hosts or origin_host == request.url.hostname
-            if not (is_same_origin or is_trusted):
-                return _reject_search(logger, "Origin not allowed", 403)
-            if request.headers.get("sec-fetch-site") == "cross-site" and not is_trusted:
-                return _reject_search(logger, "Origin not allowed", 403)
-        elif request.headers.get("sec-fetch-site") == "cross-site":
-            return _reject_search(logger, "Origin not allowed", 403)
-        body = bytearray()
-        async for chunk in request.stream():
-            body.extend(chunk)
-            if len(body) > 4096:
-                return _reject_search(logger, "Request too large", 413)
+        # Do not send provider errors to browsers.
         try:
-            payload = json.loads(body)
-        except (ValueError, UnicodeDecodeError):
-            return _reject_search(logger, "Invalid JSON", 400)
-        if not isinstance(payload, dict):
-            return _reject_search(logger, "Object required", 400)
+            payload = await read_json_object(request, trusted_hosts)
+        except RejectedRequest as error:
+            return _reject_search(logger, error.message, error.status_code)
+        if auth is not None and auth.current_user(request) is None:
+            return _reject_search(logger, "Login required", 401)
         query = payload.get("query")
         count = payload.get("max_results", 10)
         is_invalid_query = not isinstance(query, str) or not query.strip() or len(query) > 500
@@ -226,6 +215,7 @@ def create_app(search_service=web_search, static_dir=None, allowed_hosts=None, m
         Route("/", index),
         Route("/favicon.svg", favicon),
         Route("/api/search", search_endpoint, methods=["POST"]),
+        *auth_routes,
         Mount("/assets", app=StaticFiles(directory=assets / "assets", check_dir=False)),
     ]
     return app
