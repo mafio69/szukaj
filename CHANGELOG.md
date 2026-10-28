@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interfejs buduje operatory (`-"słowo"`, `+"słowo"`, `"fraza"`, `site:`/`-site:`) za użytkownika — nie trzeba pamiętać składni ani cudzysłowów.
 - Rozszerzono narzędzie MCP `web_search` i `POST /api/search` o opcjonalne argumenty szczegółowe (`time_range`, `language`, `categories`, `exclude`, `include`, `phrase`, `site`, `not_site`) — wstecznie zgodne; walidacja ścisła po stronie API (400), sanityzacja terminów w `mcp/server.py` (usuwanie cudzysłowów, limity długości i liczby), `language`/`time_range`/`categories` przekazywane do API SearXNG.
 - Testy: `tests/test_detailed_search.py` (budowa zapytania, sanityzacja, kontrakt MCP, walidacja endpointu) oraz 3 nowe testy Vitest dla panelu, chipów i ładunku `advanced`.
+- Wypchnięto gałęzie `feat/detailed-search` i `feat/email-auth` do `origin` (zgoda Mariusza z 2026-10-28); deploy po decyzji Mariusza.
 
 ### Dokończona praca nad autoryzacją e-mail (gałąź `feat/email-auth`) — 2026-10-28
 - Zcommitowano przerwane zmiany poprzedniej sesji: konta e-mail/hasła (scrypt, SQLite), sesje cookie, logowanie/rejestracja/reset z limitami, mailer SMTP z trybem dev, wspólny `request_guard` dla `/api/*`.
