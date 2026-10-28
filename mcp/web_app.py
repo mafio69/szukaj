@@ -16,7 +16,7 @@ from starlette.staticfiles import StaticFiles
 
 from access import McpAccessMiddleware
 from app_logging import configure_logging, get_logger, is_dev_env
-from server import HOST, PORT, close_http_client, mcp, web_search
+from server import CATEGORIES, HOST_PATTERN, TIME_RANGES, HOST, PORT, close_http_client, mcp, web_search
 
 FRIENDLY_INTERNAL_ERROR = "Błąd. Przepraszamy, wystąpił problem techniczny. Spróbuj ponownie za moment."
 UI_SECURITY_HEADERS = {
@@ -52,6 +52,46 @@ def _gateway_error_response(dev_mode: bool, detail: str) -> JSONResponse:
     if dev_mode:
         payload["detail"] = detail
     return JSONResponse(payload, status_code=502)
+
+
+def validated_advanced(advanced) -> dict:
+    """Strict validation for browser UI; every violation raises ValueError."""
+    if advanced is None:
+        return {}
+    if not isinstance(advanced, dict):
+        raise ValueError("advanced must be an object")
+    lists = {"exclude": 10, "include": 10, "site": 5, "not_site": 5}
+    cleaned = {}
+    for key, limit in lists.items():
+        values = advanced.get(key, [])
+        if not isinstance(values, list) or len(values) > limit:
+            raise ValueError(f"advanced.{key} must be a list of at most {limit} items")
+        for value in values:
+            if not isinstance(value, str) or not value.strip() or len(value) > 100:
+                raise ValueError(f"advanced.{key} items must be non-empty strings of at most 100 characters")
+            if key in ("site", "not_site") and not HOST_PATTERN.fullmatch(value.strip()):
+                raise ValueError(f"advanced.{key} items must be host names")
+        cleaned[key] = [value.strip() for value in values]
+    phrase = advanced.get("phrase", "")
+    if not isinstance(phrase, str) or len(phrase) > 200:
+        raise ValueError("advanced.phrase must be a string of at most 200 characters")
+    cleaned["phrase"] = phrase
+    language = advanced.get("language", "")
+    if language and (not isinstance(language, str) or len(language) > 10):
+        raise ValueError("advanced.language must be a short language code")
+    cleaned["language"] = language
+    time_range = advanced.get("time_range", "")
+    if time_range and time_range not in TIME_RANGES:
+        raise ValueError("advanced.time_range must be day, week, month or year")
+    cleaned["time_range"] = time_range
+    categories = advanced.get("categories", [])
+    if not isinstance(categories, list) or len(categories) > 5:
+        raise ValueError("advanced.categories must be a list of at most 5 items")
+    for category in categories:
+        if category not in CATEGORIES:
+            raise ValueError("advanced.categories contains an unknown category")
+    cleaned["categories"] = categories
+    return cleaned
 
 
 def _wants_html_error(request: Request) -> bool:
@@ -119,7 +159,11 @@ def create_app(search_service=web_search, static_dir=None, allowed_hosts=None, m
         if is_invalid_query or is_invalid_count:
             return _reject_search(logger, "Invalid search arguments", 400)
         try:
-            result = json.loads(await search_service(query.strip(), count))
+            advanced = validated_advanced(payload.get("advanced"))
+        except ValueError as error:
+            return _reject_search(logger, f"Invalid search arguments ({error})", 400)
+        try:
+            result = json.loads(await search_service(query.strip(), count, **advanced))
             if not is_valid_result(result):
                 raise ValueError("Invalid search result")
         except Exception as exc:
