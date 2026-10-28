@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Szukanie szczegółowe w UI i MCP — 2026-10-28
+- Panel „Szukanie szczegółowe" w `szukaj.dom` (ikona suwaków przy polu wyszukiwania): pola *Wyklucz słowa*, *Muszą wystąpić*, *Dokładna fraza*, *W witrynie*, *Poza witrynie* oraz selektory *Język*, *Czas* (dzień/tydzień/miesiąc/rok) i *Kategoria*; aktywne filtry widoczne jako zdejmowalne „chipy", `Escape` zamyka panel.
+- Interfejs buduje operatory (`-"słowo"`, `+"słowo"`, `"fraza"`, `site:`/`-site:`) za użytkownika — nie trzeba pamiętać składni ani cudzysłowów.
+- Rozszerzono narzędzie MCP `web_search` i `POST /api/search` o opcjonalne argumenty szczegółowe (`time_range`, `language`, `categories`, `exclude`, `include`, `phrase`, `site`, `not_site`) — wstecznie zgodne; walidacja ścisła po stronie API (400), sanityzacja terminów w `mcp/server.py` (usuwanie cudzysłowów, limity długości i liczby), `language`/`time_range`/`categories` przekazywane do API SearXNG.
+- Testy: `tests/test_detailed_search.py` (budowa zapytania, sanityzacja, kontrakt MCP, walidacja endpointu) oraz 3 nowe testy Vitest dla panelu, chipów i ładunku `advanced`.
+
+### Dokończona praca nad autoryzacją e-mail (gałąź `feat/email-auth`) — 2026-10-28
+- Zcommitowano przerwane zmiany poprzedniej sesji: konta e-mail/hasła (scrypt, SQLite), sesje cookie, logowanie/rejestracja/reset z limitami, mailer SMTP z trybem dev, wspólny `request_guard` dla `/api/*`.
+- Poprawki testów przerwanego zadania: asercja loggera `szukaj` (logger nie propaguje do root; dodatkowo bramka testowa wyłącza logi globalnie — wzorzec z `test_web_app.py`), `404` zamiast `405` dla niezarejestrowanego `/api/auth/login` przy wyłączonej autoryzacji, usunięty nieużywany import.
+
 ## [1.0.0] - 2026-10-24
 
 ### Weryfikacja MCP Streamable HTTP, testy PhpStorm i finalizacja wydania — 2026-10-24
