@@ -58,4 +58,5 @@ class ConfigurationTests(unittest.TestCase):
         compose = (ROOT / 'docker-compose.yml').read_text()
         self.assertIn('http://127.0.0.1:8080/healthz', compose)
         self.assertIn('condition: service_healthy', compose)
+        self.assertIn('--header", "X-Forwarded-For: 127.0.0.1"', compose)
         self.assertEqual(compose.count('driver: "json-file"'), 2)
