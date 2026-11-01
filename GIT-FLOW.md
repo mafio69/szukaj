@@ -1,98 +1,63 @@
-#mariusz/latitude
-# Preambuła – zasady współpracy
+# GIT-FLOW.md — zasady pracy z repozytorium
 
-## Role
-- Jestem zleceniodawcą. Wynająłem Cię od dostawcy na określony czas, więc jesteś wykonawcą, a nie stałym pracownikiem.
-- Rozmawiamy partnersko. Płacę za Twój czas, dlatego ostateczna decyzja należy do mnie.
-- Ty jesteś koderem. Trzymamy się swoich ról.
+## 1. Złote zasady
+- **Testy blokują commit:** Przed commitem pełny zestaw testów (`dxrun -- ...`) musi być zielony.
+- **Commit agent robi sam:** Po zielonych testach i rytuale końca agent commituje bez pytania.
+- **Push jest zablokowany:** `git push` wymaga bezwzględnie osobnej, wyraźnej zgody Mariusza na czacie.
+- **Zakaz destrukcji:** Zakaz `git push --force`, `git restore`, `git reset --hard`, `git clean -f`.
+- **Sekrety:** Absolutny zakaz commitowania `.env`, kluczy i haseł.
+- **Pliki chronione:** `GIT-FLOW.md` i `AGENTS.md` edytuje wyłącznie człowiek.
+- **Obowiązkowy podpis commitu:**
+  ```text
+  Co-Authored-By: Dostawca Model 5.5 <noreply@model.com>
+  ```
 
-## Sprzeciw i uwagi
-- Jeśli uznasz, że moja decyzja szkodzi projektowi, musisz mi o tym powiedzieć. To Twój obowiązek.
-- Masz pomysł na usprawnienie, inną mechanikę, bibliotekę lub rozwiązanie? Zgłoś go. Jestem otwarty na uwagi.
-- Po zgłoszeniu uwagi decyzja nadal należy do mnie.
+---
 
-## Uczciwość i błędy
-- Mów wprost, gdy czegoś nie wiesz. Nie zgaduj i nie udawaj pewności.
-- Mów wprost, gdy popełnisz błąd. Nie rób z tego rytuału ani nie przepraszaj na siłę.
-- Ja też mogę czegoś nie wiedzieć albo popełnić błąd. To normalna część pracy i nie szkodzi, dopóki wyciągamy z niej wnioski.
-- Szukamy przyczyny błędu tylko po to, żeby rozwiązać problem i nie powtórzyć go w przyszłości. Nie szukamy winnych.
-- Gdy polecenie jest niejasne lub niekompletne, zapytaj przed działaniem. Nie zgaduj zakresu.
+## 2. Schemat cyklu pracy (Develop Flow)
 
-## Złota zasada
-- Przed każdym commitem pełny zestaw testów wymagany przez repozytorium musi być zielony.
-- Czerwone testy, linting, typecheck lub skaner bezpieczeństwa blokują commit.
-- Jeśli czerwone jest coś niezwiązanego z zadaniem, zgłoś to mnie. Nie omijaj i nie wyłączaj kontroli.
-- Nie używaj --no-verify ani innych sposobów pomijania hooków.
+```text
+pull develop -> newbranch from develop TaskName -> end work, only all tests green ->
+commit -> change branch to develop -> merge TaskName to develop -> push to Github (za zgodą)
+```
 
-## Start zadania
-- Przeczytaj: README.md, STATUS.md, GIT-FLOW.md, AGENTS.md, HANDOFF.md.
-- Zwykłe zadanie wykonuj na nowym branchu utworzonym z aktualnego origin/develop.
-- Nie pracuj bezpośrednio na master ani develop.
-- Wyjątki dla develop: moja wyraźna zgoda albo zadanie oznaczone przeze mnie jako fire.
+### Krok po kroku:
+1. **Start:** 
+   - Przeczytaj: `README.md`, `STATUS.md`, `GIT-FLOW.md`, `AGENTS.md`, `HANDOFF.md`, `CHANGELOG.md`, `REPO.md`.
+   - Zaktualizuj develop i stwórz branch zadaniowy:
+     `git checkout develop && git pull`
+     `git checkout -b task/NazwaZadania`
+2. **Praca:** Wykonaj wyłącznie zlecone zadanie.
+3. **Weryfikacja:** Uruchom testy i lint przez `dxrun`. Wszystko musi być zielone.
+4. **Rytuał końca (przed commitem):**
+   - `HANDOFF.md` – pałeczka dla następnej sesji.
+   - `CHANGELOG.md` – historia zmian (append-only).
+   - `STATUS.md` – bieżący stan projektu i najbliższy krok.
+   - `REPO.md` – notes techniczny: jak działa nowy mechanizm i jakie są pułapki (append-only).
+5. **Commit:** Agent wykonuje commit na branchu zadaniowym (samodzielnie, z podpisem Co-Authored-By).
+6. **Merge do develop:**
+   `git checkout develop && git merge task/NazwaZadania`
+7. **Push:** Zgłoś gotowość i zapytaj Mariusza o zgodę na push do zdalnego repozytorium.
 
-## W trakcie zadania
-- Wykonuj tylko zakres zlecony przez Mariusza.
-- Nie dodawaj zależności, nie aktualizuj pakietów i nie refaktoryzuj pobocznych elementów bez zgody.
-- Nie odczytuj ani nie modyfikuj sekretów. Nie analizuj dxrun, dotenvx ani skryptów środowiska. Obowiązuje AGENTS.md.
-- Testy i kontrole jakości uruchamiaj przez dxrun, jeśli polecenie wymaga środowiska.
-- Zauważysz problem poza zakresem? Zgłoś go w raporcie, nie naprawiaj na własną rękę.
+---
 
-## Commit
-- Agent commituje sam.
-- Nie zmieniaj git config user.name ani git config user.email.
-- Nie cofaj zmian przez git restore, git checkout --, git reset --hard, git clean -f ani podobne mechanizmy bez mojej zgody.
-- Nie commituj sekretów, plików .env ani kluczy. Pilnujcie tych sekretów potem jest masa roboty jak wyjdzie na github
-- Obowiązek podpisywania się wyście to robili to się podpisywać w commit
-    `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
-
-## Push, master, deploy
-- git push wymaga osobnej, wyraźnej zgody Mariusza w bieżącej rozmowie.
-- Nie używaj force push!
-- Master przyjmuje zmiany wyłącznie przez PR z zielonymi wymaganymi kontrolami.
-- Deploy wymaga osobnej zgody Mariusza.
-- Po udanym wdrożeniu gałąź zadaniową można usunąć.
-
-## Koniec zadania
-- Podaj krótki raport: co zmieniono, jakie testy uruchomiono i z jakim wynikiem, co zostało otwarte.
-- Jeśli pliki istnieją i zmiana tego wymaga, zaktualizuj kolejno:
-1. HANDOFF.md – krótka pałeczka dla następnej sesji.
-2. CHANGELOG.md – trwała historia, append-only.
-3. STATUS.md – aktualny stan i następny priorytet.
-
-## Diagram przepływu pracy
+## 3. Diagram przepływu pracy
 
 ```mermaid
 flowchart TD
-    A([Start zadania]) --> B[Przeczytaj README, STATUS, GIT-FLOW, AGENTS, HANDOFF]
-    B --> C{Zadanie fire lub zgoda na develop?}
-    C -- Nie --> D[Nowy branch z origin/develop]
-    C -- Tak --> E[Praca na develop]
-    D --> F[Praca w zleconym zakresie]
-    E --> F
-    F --> G{Problem poza zakresem?}
-    G -- Tak --> H[Zgłoś w raporcie, nie naprawiaj]
-    G -- Nie --> I
-    H --> I[Testy, lint, typecheck, skaner przez dxrun]
-    I --> J{Wszystko zielone?}
-    J -- Nie --> K[Napraw lub zgłoś Mariuszowi]
-    K --> I
-    J -- Tak --> L{Zgoda Mariusza na commit?}
-    L -- Nie --> M[Czekaj na zgodę]
-    M --> L
-    L -- Tak --> N[Commit]
-    N --> O{Zgoda na push?}
-    O -- Nie --> P[Czekaj na zgodę]
-    P --> O
-    O -- Tak --> Q[git push bez force]
-    Q --> R[PR do master z zielonymi kontrolami]
-    R --> S{Zgoda na deploy?}
-    S -- Tak --> T[Deploy]
-    S -- Nie --> U[Czekaj na zgodę]
-    U --> S
-    T --> V{Zgoda na usunięcie brancha?}
-    V -- Tak --> W[Usuń branch zadaniowy]
-    V -- Nie --> X[Zostaw branch]
-    W --> Y
-    X --> Y[Dokumentacja: HANDOFF, CHANGELOG, STATUS]
-    Y --> Z([Raport końcowy])
+    A([Start zadania]) --> B[Przeczytaj dokumentację: README, STATUS, REPO...]
+    B --> C[git checkout develop && git pull]
+    C --> D[git checkout -b task/NazwaZadania]
+    D --> E[Praca w zleconym zakresie]
+    E --> F[Testy i lint przez dxrun]
+    F --> G{Wszystko zielone?}
+    G -- Nie --> H[Napraw błędy] --> F
+    G -- Tak --> I[Rytuał końca: HANDOFF, CHANGELOG, STATUS, REPO]
+    I --> J[git commit na branchu zadaniowym]
+    J --> K[git checkout develop]
+    K --> L[git merge task/NazwaZadania]
+    L --> M{Zgoda Mariusza na push?}
+    M -- Nie --> N[Czekaj na zgodę]
+    M -- Tak --> O[git push origin develop]
+    O --> P([Koniec zadania - raport])
 ```

@@ -84,7 +84,10 @@ _http_client: httpx.AsyncClient | None = None
 def get_http_client() -> httpx.AsyncClient:
     global _http_client
     if _http_client is None or _http_client.is_closed:
-        _http_client = httpx.AsyncClient(follow_redirects=False)
+        _http_client = httpx.AsyncClient(
+            follow_redirects=False,
+            transport=httpx.AsyncHTTPTransport(local_address="0.0.0.0"),
+        )
     return _http_client
 
 

@@ -75,3 +75,9 @@ class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(first.is_closed)
         await server.close_http_client()
         self.assertTrue(first.is_closed)
+
+    async def test_http_client_is_pinned_to_ipv4(self):
+        await server.close_http_client()
+        client = server.get_http_client()
+        self.addCleanup(server.close_http_client)
+        self.assertEqual(client._transport._pool._local_address, "0.0.0.0")
